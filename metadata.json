@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Palazzo AI Staging Demo",
+  "description": "An AI-powered interior design tool that allows users to upload a photo of an empty room and see it instantly staged in various styles. The app also generates a list of furniture used in the design, complete with purchase links.",
+  "requestFramePermissions": []
+}
