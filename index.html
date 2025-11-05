@@ -25,6 +25,73 @@
         }
       }
     </script>
+    <style>
+      .title-container {
+        display: inline-block;
+        position: relative;
+        vertical-align: bottom;
+      }
+      .animated-text {
+        display: inline-block;
+        animation-duration: 350ms;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        animation-fill-mode: forwards;
+      }
+      .ai-powered-gradient {
+        background-image: linear-gradient(to right, #00F5A0, #00D9F5);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      @keyframes slide-out-up {
+        to { transform: translateY(-120%); opacity: 0; }
+      }
+      @keyframes slide-in-up {
+        from { transform: translateY(120%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      @keyframes slide-out-down {
+        to { transform: translateY(120%); opacity: 0; }
+      }
+      @keyframes slide-in-down {
+        from { transform: translateY(-120%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .slide-out-up { animation-name: slide-out-up; }
+      .slide-in-up { animation-name: slide-in-up; }
+      .slide-out-down { animation-name: slide-out-down; }
+      .slide-in-down { animation-name: slide-in-down; }
+
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in {
+        animation-name: fade-in;
+      }
+      
+      @keyframes shimmer {
+        0% { background-position: -100% 0; }
+        100% { background-position: 100% 0; }
+      }
+      .animate-shimmer::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(to right, transparent 20%, rgba(255, 255, 255, 0.6) 50%, transparent 80%);
+          background-size: 200% 100%;
+          animation: shimmer 2s infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .animated-text, .animate-fade-in, .animate-shimmer::after {
+          animation: none;
+        }
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../types';
-import { SparklesIcon, ListIcon, HistoryIcon, PlusIcon, SendIcon, EditIcon, ShopIcon } from './Icons';
+import { SparklesIcon, ListIcon, HistoryIcon, PlusIcon, DownArrowIcon } from './Icons';
 
 interface SidebarProps {
   messages: Message[];
@@ -10,7 +10,6 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoading }) => {
   const [inputValue, setInputValue] = useState('');
-  const [mode, setMode] = useState<'edit' | 'shop'>('shop');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -28,16 +27,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoa
   return (
     <aside className="w-full max-w-sm border-r border-gray-200 flex flex-col bg-white">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex space-x-2">
-            <button className="p-2 rounded-md hover:bg-gray-100 text-gray-500">
-              <ListIcon className="h-5 w-5" />
-            </button>
-            <button className="p-2 rounded-md hover:bg-gray-100 text-gray-500">
-              <SparklesIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
         <div className="flex justify-between items-center">
           <h2 className="font-bold text-lg text-gray-800">Chat with Vinci</h2>
           <button className="p-2 rounded-md hover:bg-gray-100 text-gray-500">
@@ -71,22 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoa
       </div>
 
       <div className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
-        <div className="flex items-center justify-center space-x-2 mb-4">
-            <button 
-              onClick={() => setMode('edit')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${mode === 'edit' ? 'bg-gray-200 text-gray-900' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
-            >
-              <EditIcon className="h-4 w-4" />
-              <span>Edit mode</span>
-            </button>
-            <button
-              onClick={() => setMode('shop')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${mode === 'shop' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
-            >
-              <ShopIcon className="h-4 w-4" />
-              <span>Shop mode</span>
-            </button>
-        </div>
         <form onSubmit={handleSubmit}>
           <div className="relative">
             <button type="button" className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-gray-100 text-gray-500">
@@ -97,11 +70,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoa
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={isLoading}
-              placeholder={mode === 'edit' ? "What would you like to change?" : "What would you like to buy?"}
-              className="w-full bg-gray-100 rounded-full border-gray-200 pl-10 pr-12 py-3 text-sm focus:ring-brand-accent focus:border-brand-accent transition"
+              placeholder="Send a message..."
+              className="w-full bg-gray-100 rounded-full border-gray-200 pl-10 pr-12 py-3 text-sm text-gray-900 focus:ring-brand-accent focus:border-brand-accent transition"
             />
             <button type="submit" disabled={isLoading || !inputValue.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-900 text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
-              <SendIcon className="w-5 h-5 -rotate-90" />
+              <DownArrowIcon className="w-5 h-5" />
             </button>
           </div>
         </form>

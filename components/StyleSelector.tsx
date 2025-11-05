@@ -9,13 +9,23 @@ interface StyleSelectorProps {
 }
 
 export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoading }) => {
-  const [selectedStyle, setSelectedStyle] = useState<DesignStyle>('Modern');
+  const [selectedStyle, setSelectedStyle] = useState<DesignStyle | null>(null);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+
+  const handleStyleClick = (style: DesignStyle) => {
+    if (selectedStyle === style) {
+      setSelectedStyle(null); // Deselect if the same style is clicked again
+    } else {
+      setSelectedStyle(style);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onGenerate(selectedStyle, customPrompt);
+    onGenerate(selectedStyle || '', customPrompt);
   };
+
+  const isGenerateDisabled = isLoading || (!selectedStyle && !customPrompt.trim());
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -26,11 +36,11 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoad
             <button
               key={style}
               type="button"
-              onClick={() => setSelectedStyle(style)}
+              onClick={() => handleStyleClick(style)}
               className={`px-3 py-2 text-sm font-semibold rounded-md transition-all ${
                 selectedStyle === style
                   ? 'bg-brand-primary text-white shadow-md'
-                  : 'bg-gray-200 text-gray-700 hover:bg-brand-light'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
               {style}
@@ -40,20 +50,20 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoad
       </div>
       <div>
         <label htmlFor="custom-prompt" className="block text-sm font-medium text-gray-700">
-          Or add custom details (optional):
+          Or add a design prompt:
         </label>
         <textarea
           id="custom-prompt"
           rows={3}
           value={customPrompt}
           onChange={(e) => setCustomPrompt(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-secondary focus:ring-brand-secondary sm:text-sm"
-          placeholder="e.g., 'with a cozy fireplace and lots of plants'"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-secondary focus:ring-brand-secondary sm:text-sm bg-white text-gray-900"
+          placeholder="e.g., 'add a plush velvet sofa and gold accents'"
         />
       </div>
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isGenerateDisabled}
         className="w-full flex justify-center items-center gap-2 px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-secondary hover:bg-brand-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
       >
         {isLoading ? (

@@ -1,8 +1,13 @@
 export interface FurnitureItem {
+  id: string;
   name: string;
-  price: number;
-  imageUrl: string;
-  purchaseUrl: string;
+  imageUrl?: string;
+  price: string;
+  dimensions: string;
+  materials: string[];
+  styleTags:string[];
+  color: string;
+  description: string;
 }
 
 export interface Message {

@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Modality, Type } from "@google/genai";
-import type { FurnitureItem, Message } from '../types';
+import type { FurnitureItem } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -9,20 +10,92 @@ const furnitureListSchema = {
     type: Type.OBJECT,
     properties: {
       name: { type: Type.STRING, description: 'Descriptive name of the furniture or decor item.' },
-      price: { type: Type.NUMBER, description: 'Estimated price of the item in USD.' },
-      purchaseUrl: { type: Type.STRING, description: 'A placeholder URL for purchasing the item.' }
+      price: { type: Type.STRING, description: 'An estimated, plausible price range for the item (e.g., "$400 - $600").' },
+      color: { type: Type.STRING, description: 'The dominant color of the item (e.g., "Natural Oak").' },
+      description: { type: Type.STRING, description: 'A brief, engaging one-sentence description of the item.' },
+      dimensions: { type: Type.STRING, description: 'Estimated dimensions of the item (e.g., "W: 85\\" x D: 38\\" x H: 35\\"").' },
+      materials: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'A list of key materials (e.g., ["Oak wood", "Leather"]).' },
+      styleTags: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'A list of relevant style tags (e.g., ["Modern", "Minimalist"]).' },
     },
-    required: ['name', 'price', 'purchaseUrl'],
+    required: ['name', 'price', 'color', 'description', 'dimensions', 'materials', 'styleTags'],
   },
 };
 
-export const generateInitialDesign = async (
+export const getShoppingInfoForItem = async (itemName: string): Promise<{ imageUrl: string }> => {
+  try {
+    const imagePrompt = `Generate a photorealistic product image of a single "${itemName}" on a plain, neutral light grey background. The item should be centered and well-lit.`;
+    const imageResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: { parts: [{ text: imagePrompt }] },
+      config: { responseModalities: [Modality.IMAGE] },
+    });
+    const generatedImagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => !!p.inlineData);
+    const imageData = generatedImagePart?.inlineData?.data || '';
+    const imageUrl = imageData ? `data:image/jpeg;base64,${imageData}` : '';
+
+    if (!imageUrl) {
+      console.warn(`Could not generate product image for: ${itemName}`);
+    }
+
+    return { imageUrl };
+
+  } catch (error) {
+    console.error(`Error getting shopping info for ${itemName}:`, error);
+    return {
+      imageUrl: '', 
+    };
+  }
+};
+
+export const generateFullFurnitureList = async (imageBase64: string): Promise<FurnitureItem[]> => {
+    const furnitureListPrompt = `Analyze the provided image of a decorated room. Identify up to 8 key furniture and decor items. For each item, provide a descriptive name, an estimated price range, its dominant color, a short description, estimated dimensions, key materials, and relevant style tags. Return this information as a valid JSON array of objects.`;
+
+    const furnitureResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                { inlineData: { data: imageBase64, mimeType: 'image/jpeg' } },
+                { text: furnitureListPrompt },
+            ],
+        },
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: furnitureListSchema,
+        },
+    });
+    
+    let rawFurnitureList;
+    try {
+        rawFurnitureList = JSON.parse(furnitureResponse.text.trim());
+    } catch(e) {
+        console.error("Failed to parse furniture list JSON:", furnitureResponse.text);
+        throw new Error("Could not parse the furniture list from the AI response.");
+    }
+    
+    if (!Array.isArray(rawFurnitureList)) {
+      throw new Error("AI response for furniture list was not an array.");
+    }
+
+    const fullFurnitureList: FurnitureItem[] = rawFurnitureList.map((item: any, index: number) => ({
+      id: `${Date.now()}-${index}`,
+      name: item.name || 'Unnamed Item',
+      price: item.price || 'N/A',
+      color: item.color || 'N/A',
+      description: item.description || 'No description available.',
+      dimensions: item.dimensions || 'Not available',
+      materials: item.materials || [],
+      styleTags: item.styleTags || [],
+    }));
+
+    return fullFurnitureList;
+};
+
+export const generateStagedImage = async (
   imageBase64: string,
   mimeType: string,
   style: string,
   customPrompt: string
-): Promise<{ generatedImage: string, furnitureList: FurnitureItem[] }> => {
-    // Step 1: Generate the initial staged image
+): Promise<string> => {
     const imageGenerationPrompt = `You are an expert interior designer AI. A user has provided an image of an empty or sparsely furnished room.
     Your task is to completely restage the room based on the user's desired style.
     **Desired Style:** ${style}.
@@ -47,59 +120,15 @@ export const generateInitialDesign = async (
     if (!generatedImagePart?.inlineData) {
         throw new Error("API did not return a generated image.");
     }
-    const newImageBase64 = generatedImagePart.inlineData.data;
-
-    // Step 2: Generate the furniture list from the new image
-    const furnitureListPrompt = `Analyze the provided image of a decorated room. Identify up to 8 key furniture and decor items visible. For each item, create a descriptive name, estimate a realistic price in USD, and generate a placeholder purchase URL (e.g., https://example.com/shop/item-name). Return this information as a valid JSON array of objects.`;
-
-    const furnitureResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: {
-            parts: [
-                // New image is always jpeg from the model, so we can hardcode the mimeType
-                { inlineData: { data: newImageBase64, mimeType: 'image/jpeg' } },
-                { text: furnitureListPrompt },
-            ],
-        },
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: furnitureListSchema,
-        },
-    });
     
-    let rawFurnitureList;
-    try {
-        rawFurnitureList = JSON.parse(furnitureResponse.text.trim());
-    } catch(e) {
-        console.error("Failed to parse furniture list JSON:", furnitureResponse.text);
-        throw new Error("Could not parse the furniture list from the AI response.");
-    }
-    
-    if (!Array.isArray(rawFurnitureList)) {
-      throw new Error("AI response for furniture list was not an array.");
-    }
-
-    const furnitureListWithImages: FurnitureItem[] = rawFurnitureList.map((item: any) => ({
-      name: item.name || 'Unnamed Item',
-      price: item.price || 0,
-      purchaseUrl: item.purchaseUrl || '#',
-      // In a real app, you'd search a product catalog for a matching image.
-      // Here we use a placeholder service.
-      imageUrl: `https://source.unsplash.com/100x100/?${encodeURIComponent(item.name)}`,
-    }));
-
-    return {
-      generatedImage: newImageBase64,
-      furnitureList: furnitureListWithImages,
-    };
+    return generatedImagePart.inlineData.data;
 };
 
 export const editImageWithPrompt = async (
   imageBase64: string,
   prompt: string
-): Promise<{ generatedImage: string, furnitureList: FurnitureItem[] }> => {
+): Promise<{ generatedImage: string }> => {
 
-  // --- Step 1: Generate the edited image ---
   const imageGenerationPrompt = `You are an expert interior designer AI. Your task is to modify the provided image of a staged room based on a user's text request.
   **Strictly preserve the original room's architecture, including walls, windows, doors, and flooring.**
   Apply the following change: "${prompt}".
@@ -123,47 +152,109 @@ export const editImageWithPrompt = async (
   if (!generatedImagePart?.inlineData) {
       throw new Error("API did not return a generated image.");
   }
+  
+  return {
+    generatedImage: generatedImagePart.inlineData.data,
+  };
+};
+
+export const editContentWithPrompt = async (
+  imageBase64: string,
+  prompt: string
+): Promise<{ generatedImage: string, socialPostContent: string }> => {
+  const imageGenerationPrompt = `You are a creative AI content designer. Your task is to modify the provided image based on a user's text request.
+  Apply the following change: "${prompt}".
+  Only change what is requested and keep the rest of the image content and style as close to the original as possible.
+  Generate a new, visually appealing image reflecting this single change.`;
+
+  const imageResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+          parts: [
+              { inlineData: { data: imageBase64, mimeType: 'image/jpeg' } },
+              { text: imageGenerationPrompt },
+          ],
+      },
+      config: {
+          responseModalities: [Modality.IMAGE],
+      },
+  });
+  
+  const generatedImagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => !!p.inlineData);
+  if (!generatedImagePart?.inlineData) {
+      throw new Error("API did not return a generated image.");
+  }
   const newImageBase64 = generatedImagePart.inlineData.data;
 
-  // --- Step 2: Generate the new furniture list from the new image ---
-  const furnitureListPrompt = `Analyze the provided image of a decorated room. Identify up to 8 key furniture and decor items visible. For each item, create a descriptive name, estimate a realistic price in USD, and generate a placeholder purchase URL (e.g., https://example.com/shop/item-name). Return this information as a valid JSON array of objects.`;
+  const socialPostPrompt = `Based on the newly edited image and the user's latest request ("${prompt}"), rewrite the social media post.
+  The post should be short, engaging, suitable for platforms like Instagram, and include a catchy caption and relevant hashtags.
+  Keep the tone upbeat and professional, aligned with the new visual. Just return the text for the post.`;
 
-  const furnitureResponse = await ai.models.generateContent({
+  const textResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: {
           parts: [
               { inlineData: { data: newImageBase64, mimeType: 'image/jpeg' } },
-              { text: furnitureListPrompt },
+              { text: socialPostPrompt },
           ],
       },
-      config: {
-          responseMimeType: 'application/json',
-          responseSchema: furnitureListSchema,
-      },
   });
-  
-  let rawFurnitureList;
-  try {
-      rawFurnitureList = JSON.parse(furnitureResponse.text.trim());
-  } catch(e) {
-      console.error("Failed to parse furniture list JSON:", furnitureResponse.text);
-      throw new Error("Could not parse the furniture list from the AI response.");
-  }
-  
-  if (!Array.isArray(rawFurnitureList)) {
-    throw new Error("AI response for furniture list was not an array.");
-  }
-
-  const furnitureListWithImages: FurnitureItem[] = rawFurnitureList.map((item: any) => ({
-    name: item.name || 'Unnamed Item',
-    price: item.price || 0,
-    purchaseUrl: item.purchaseUrl || '#',
-    imageUrl: `https://source.unsplash.com/100x100/?${encodeURIComponent(item.name)}`,
-  }));
-
 
   return {
     generatedImage: newImageBase64,
-    furnitureList: furnitureListWithImages,
+    socialPostContent: textResponse.text,
   };
+};
+
+export const generateContentDesign = async (
+  imageBase64: string,
+  mimeType: string,
+  style: string,
+  customPrompt: string
+): Promise<{ generatedImage: string, socialPostContent: string }> => {
+    const imageGenerationPrompt = `You are a creative AI content designer. A user has provided an image and wants to enhance it.
+    Your task is to creatively reinterpret and enhance the provided image based on the user's desired style.
+    **Desired Style:** ${style}.
+    **Additional User Instructions:** ${customPrompt || 'None'}.
+    Generate a new, visually appealing image that aligns with the requested style.
+    Preserve the core subject of the original image, but feel free to add stylistic elements, text overlays, or relevant graphics that enhance the theme.`;
+
+    const imageResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [
+                { inlineData: { data: imageBase64, mimeType: mimeType } },
+                { text: imageGenerationPrompt },
+            ],
+        },
+        config: {
+            responseModalities: [Modality.IMAGE],
+        },
+    });
+
+    const generatedImagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => !!p.inlineData);
+    if (!generatedImagePart?.inlineData) {
+        throw new Error("API did not return a generated image.");
+    }
+    const newImageBase64 = generatedImagePart.inlineData.data;
+
+    const socialPostPrompt = `Based on the provided image, write a short and engaging social media post.
+    The user's desired style is "${style}" and their prompt was "${customPrompt || 'None'}".
+    The post should be suitable for platforms like Instagram. Include a catchy caption and 3-5 relevant hashtags.
+    Keep the tone upbeat and professional, aligned with the visual style of the image. Just return the text for the post, nothing else.`;
+    
+    const textResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                { inlineData: { data: newImageBase64, mimeType: 'image/jpeg' } },
+                { text: socialPostPrompt },
+            ],
+        },
+    });
+
+    return {
+      generatedImage: newImageBase64,
+      socialPostContent: textResponse.text,
+    };
 };

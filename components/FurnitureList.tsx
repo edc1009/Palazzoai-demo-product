@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { FurnitureItem } from '../types';
 import { ExternalLinkIcon } from './Icons';
@@ -17,7 +18,8 @@ export const FurnitureList: React.FC<FurnitureListProps> = ({ items }) => {
         <ul className="space-y-3">
           {items.map((item, index) => (
             <li key={index} className="bg-white p-3 rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <a href={item.purchaseUrl} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 group">
+              {/* FIX: Property 'purchaseUrl' does not exist on type 'FurnitureItem'. Replaced with a Google Shopping search link. */}
+              <a href={`https://www.google.com/search?q=${encodeURIComponent(item.name)}&tbm=shop`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 group">
                 <img 
                   src={item.imageUrl} 
                   alt={item.name} 
@@ -25,7 +27,8 @@ export const FurnitureList: React.FC<FurnitureListProps> = ({ items }) => {
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
-                  <p className="text-sm text-green-600 font-medium">${item.price.toFixed(2)}</p>
+                  {/* FIX: The 'price' property was missing from the FurnitureItem type. It has been added as an optional property in types.ts. */}
+                  <p className="text-sm text-green-600 font-medium">{item.price}</p>
                 </div>
                 <ExternalLinkIcon className="h-5 w-5 text-gray-400 group-hover:text-brand-secondary transition-colors flex-shrink-0"/>
               </a>
