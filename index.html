@@ -1,3 +1,13 @@
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
+  }
+}
+</script>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -69,41 +79,9 @@
       .animate-fade-in {
         animation-name: fade-in;
       }
-      
-      @keyframes shimmer {
-        0% { background-position: -100% 0; }
-        100% { background-position: 100% 0; }
-      }
-      .animate-shimmer::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(to right, transparent 20%, rgba(255, 255, 255, 0.6) 50%, transparent 80%);
-          background-size: 200% 100%;
-          animation: shimmer 2s infinite;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .animated-text, .animate-fade-in, .animate-shimmer::after {
-          animation: none;
-        }
-      }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
-  }
-}
-</script>
-</head>
-  <body class="bg-gray-100 font-sans">
+  </head>
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

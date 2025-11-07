@@ -158,6 +158,47 @@ export const editImageWithPrompt = async (
   };
 };
 
+export const determineUserIntent = async (prompt: string): Promise<'IMAGE' | 'TEXT'> => {
+  const routerPrompt = `Analyze the user's request: "${prompt}". Does the user want to change the image (e.g., "add a cat", "make it brighter", "change the background") or just the text of the social media post (e.g., "make it funnier", "add more hashtags", "write a shorter caption")?
+  Respond with only the word 'IMAGE' if they want to change the visual content, or only the word 'TEXT' if they only want to change the written content.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: routerPrompt,
+    config: {
+      temperature: 0,
+    }
+  });
+
+  const intent = response.text.trim().toUpperCase();
+  if (intent === 'IMAGE' || intent === 'TEXT') {
+    return intent;
+  }
+  // Default to image editing if unsure, as it's the more comprehensive action.
+  return 'IMAGE';
+};
+
+export const regenerateSocialPostOnly = async (
+  imageBase64: string,
+  prompt: string
+): Promise<string> => {
+  const socialPostPrompt = `Based on the provided image and the user's latest request ("${prompt}"), rewrite the social media post.
+  The post should be short, engaging, suitable for platforms like Instagram, and include a catchy caption and relevant hashtags.
+  Keep the tone upbeat and professional, aligned with the visual. Just return the text for the post.`;
+
+  const textResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+          parts: [
+              { inlineData: { data: imageBase64, mimeType: 'image/jpeg' } },
+              { text: socialPostPrompt },
+          ],
+      },
+  });
+
+  return textResponse.text;
+};
+
 export const editContentWithPrompt = async (
   imageBase64: string,
   prompt: string

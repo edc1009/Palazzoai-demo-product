@@ -7,13 +7,13 @@ import { ImageUploader } from './components/ImageUploader';
 import { StyleSelector } from './components/StyleSelector';
 import { ResultPanel } from './components/ResultPanel';
 import { ItemDetailModal } from './components/ItemDetailModal';
-import { generateStagedImage, generateFullFurnitureList, getShoppingInfoForItem, editImageWithPrompt, generateContentDesign, editContentWithPrompt } from './services/geminiService';
+import { generateStagedImage, generateFullFurnitureList, getShoppingInfoForItem, editImageWithPrompt, generateContentDesign, editContentWithPrompt, determineUserIntent, regenerateSocialPostOnly } from './services/geminiService';
 import type { FurnitureItem, Message, AppState } from './types';
-import { Spinner, DownloadIcon } from './components/Icons';
+import { Spinner, DownloadIcon, CopyIcon } from './components/Icons';
 import { SocialPostPanel } from './components/SocialPostPanel';
 
 const App: React.FC = () => {
-  const [designMode, setDesignMode] = useState<'interior' | 'content'>('content');
+  const [designMode, setDesignMode] = useState<'interior' | 'content'>('interior');
   const [appState, setAppState] = useState<AppState>('initial');
   const [uploadedImage, setUploadedImage] = useState<{ dataUrl: string, mimeType: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,8 +23,9 @@ const App: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<FurnitureItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
+  const [isCopied, setIsCopied] = useState(false);
 
-  const [animatedTitle, setAnimatedTitle] = useState('Content Creation');
+  const [animatedTitle, setAnimatedTitle] = useState('Interior Staging');
   const [titleAnimationClass, setTitleAnimationClass] = useState('');
   
   const handleModeChange = (mode: 'interior' | 'content') => {
@@ -167,12 +168,12 @@ const App: React.FC = () => {
     const newUserMessage: Message = { id: Date.now().toString(), text, sender: 'user' };
     setMessages(prev => [...prev, newUserMessage]);
     setAppState('generating');
-    setLoadingMessage('Applying your changes...');
 
     try {
       const base64Data = generatedImage.split(',')[1];
       
       if (designMode === 'interior') {
+        setLoadingMessage('Applying your changes...');
         const result = await editImageWithPrompt(base64Data, text);
         const newImageBase64 = result.generatedImage;
         
@@ -190,9 +191,17 @@ const App: React.FC = () => {
         setGeneratedImage(`data:image/jpeg;base64,${newImageBase64}`);
         setFurnitureItems(finalItems);
       } else { // content mode
-        const result = await editContentWithPrompt(base64Data, text);
-        setGeneratedImage(`data:image/jpeg;base64,${result.generatedImage}`);
-        setSocialPostContent(result.socialPostContent);
+        const intent = await determineUserIntent(text);
+        if (intent === 'TEXT') {
+          setLoadingMessage('Rewriting your post...');
+          const newSocialPostContent = await regenerateSocialPostOnly(base64Data, text);
+          setSocialPostContent(newSocialPostContent);
+        } else { // intent === 'IMAGE'
+          setLoadingMessage('Applying your changes...');
+          const result = await editContentWithPrompt(base64Data, text);
+          setGeneratedImage(`data:image/jpeg;base64,${result.generatedImage}`);
+          setSocialPostContent(result.socialPostContent);
+        }
         setFurnitureItems([]);
       }
       
@@ -205,7 +214,7 @@ const App: React.FC = () => {
       setAppState('results_ready');
 
     } catch (error) {
-      console.error("Failed to edit image:", error);
+      console.error("Failed to apply changes:", error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: "I'm sorry, I wasn't able to make that change. Please try a different prompt.",
@@ -235,15 +244,23 @@ const App: React.FC = () => {
   const handleCloseModal = () => {
     setSelectedItem(null);
   };
+  
+  const handleCopyText = () => {
+    if (socialPostContent) {
+        navigator.clipboard.writeText(socialPostContent);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
 
   if (appState === 'results_ready' || (appState === 'generating' && generatedImage)) {
     const isLoading = appState === 'generating';
     return (
       <>
         <div className="flex flex-col h-screen bg-white">
-          <Header onStartOver={handleReset} />
+          <Header designMode={designMode} onModeChange={handleModeChange} />
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} />
+            <Sidebar messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} onStartOver={handleReset} />
             <main className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 flex items-center justify-center p-4 lg:p-8 bg-gray-100 min-h-0">
                 {generatedImage && (
@@ -273,8 +290,20 @@ const App: React.FC = () => {
               </div>
               
               {designMode === 'content' && socialPostContent && !isLoading && (
-                  <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 lg:p-6 max-h-[25vh] overflow-y-auto">
-                      <p className="text-gray-800 text-sm lg:text-base whitespace-pre-wrap">{socialPostContent}</p>
+                  <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 lg:p-6">
+                      <div className="flex justify-between items-end gap-4">
+                          <div className="space-y-2 max-h-[30vh] overflow-y-auto flex-grow">
+                              <p className="text-sm font-semibold text-gray-500">✨ AI-Generated Post</p>
+                              <p className="text-gray-800 text-base lg:text-lg whitespace-pre-wrap leading-relaxed">{socialPostContent}</p>
+                          </div>
+                          <button
+                              onClick={handleCopyText}
+                              className="flex-shrink-0 bg-blue-50 text-brand-accent font-semibold py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm"
+                          >
+                              <CopyIcon className="h-4 w-4" />
+                              {isCopied ? 'Copied!' : 'Copy'}
+                          </button>
+                      </div>
                   </div>
               )}
 
@@ -321,32 +350,34 @@ const App: React.FC = () => {
                   uploadedImage={uploadedImage?.dataUrl ?? null} 
                 />
               </div>
-              {(appState === 'image_uploaded' || appState === 'generating' || appState === 'error') && uploadedImage && (
-                 <div>
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2">2. Choose Your Style</h2>
-                    <StyleSelector 
-                      onGenerate={designMode === 'interior' ? handleGenerate : handleGenerateContent} 
-                      isLoading={appState === 'generating'} 
-                    />
-                </div>
-              )}
-            </div>
-            <div className="space-y-6 lg:sticky top-8">
-              {designMode === 'content' && (
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2">3. social post content</h2>
-                    <SocialPostPanel appState={appState} content={socialPostContent} />
-                  </div>
-              )}
               <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-2">{designMode === 'content' ? '4. See the magic' : '3. See the Magic'}</h2>
-                <ResultPanel 
-                  appState={appState} 
-                  generatedImage={generatedImage}
-                  error={error}
-                  designMode={designMode}
-                  loadingMessage={loadingMessage}
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">{designMode === 'interior' ? '2. Choose Your Style' : '2. Choose a Style'}</h2>
+                <StyleSelector 
+                  onGenerate={designMode === 'interior' ? handleGenerate : handleGenerateContent} 
+                  isLoading={appState === 'generating'}
+                  isImageUploaded={!!uploadedImage}
+                  generateButtonText={designMode === 'interior' ? 'Generate Design' : 'Generate Content'}
                 />
+              </div>
+            </div>
+            <div className="lg:sticky top-8">
+              <div className="space-y-6">
+                {designMode === 'content' && (
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-800 mb-2">3. Social Post Content</h2>
+                      <SocialPostPanel appState={appState} content={socialPostContent} />
+                    </div>
+                )}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-2">{designMode === 'content' ? '4. See the Magic' : '3. See the Magic'}</h2>
+                  <ResultPanel 
+                    appState={appState} 
+                    generatedImage={generatedImage}
+                    error={error}
+                    designMode={designMode}
+                    loadingMessage={loadingMessage}
+                  />
+                </div>
               </div>
             </div>
           </div>

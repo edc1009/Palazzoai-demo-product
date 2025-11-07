@@ -1,14 +1,16 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../types';
-import { SparklesIcon, ListIcon, HistoryIcon, PlusIcon, DownArrowIcon } from './Icons';
+import { SparklesIcon, PlusIcon, DownArrowIcon } from './Icons';
 
 interface SidebarProps {
   messages: Message[];
   onSendMessage: (text: string) => void;
   isLoading: boolean;
+  onStartOver: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoading }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoading, onStartOver }) => {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,10 +29,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ messages, onSendMessage, isLoa
   return (
     <aside className="w-full max-w-sm border-r border-gray-200 flex flex-col bg-white">
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <h2 className="font-bold text-lg text-gray-800">Chat with Vinci</h2>
-          <button className="p-2 rounded-md hover:bg-gray-100 text-gray-500">
-            <HistoryIcon className="h-5 w-5" />
+          <button
+            onClick={onStartOver}
+            className="text-sm font-medium text-gray-600 hover:text-brand-primary"
+          >
+            Start Over
           </button>
         </div>
       </div>

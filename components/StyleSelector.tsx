@@ -1,16 +1,31 @@
 
 import React, { useState } from 'react';
 import { designStyles, DesignStyle } from '../types';
-import { SparklesIcon } from './Icons';
+import { SparklesIcon, ChevronLeftIcon, ChevronRightIcon, CheckIcon } from './Icons';
 
 interface StyleSelectorProps {
   onGenerate: (style: string, prompt: string) => void;
   isLoading: boolean;
+  isImageUploaded: boolean;
+  generateButtonText?: string;
 }
 
-export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoading }) => {
+export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoading, isImageUploaded, generateButtonText = 'Generate Design' }) => {
   const [selectedStyle, setSelectedStyle] = useState<DesignStyle | null>(null);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  
+  const [page, setPage] = useState(0);
+  const stylesPerPage = 3;
+  const numPages = Math.ceil(designStyles.length / stylesPerPage);
+  
+  const startIndex = page * stylesPerPage;
+  const displayedStyles = designStyles.slice(startIndex, startIndex + stylesPerPage);
+
+  const handlePrevPage = () => setPage(p => Math.max(0, p - 1));
+  const handleNextPage = () => setPage(p => Math.min(numPages - 1, p + 1));
+  
+  const canGoPrev = page > 0;
+  const canGoNext = page < numPages - 1;
 
   const handleStyleClick = (style: DesignStyle) => {
     if (selectedStyle === style) {
@@ -22,30 +37,58 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoad
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isImageUploaded) return;
     onGenerate(selectedStyle || '', customPrompt);
   };
 
-  const isGenerateDisabled = isLoading || (!selectedStyle && !customPrompt.trim());
+  const isGenerateDisabled = isLoading || !isImageUploaded || (!selectedStyle && !customPrompt.trim());
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Select a style:</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {designStyles.map((style) => (
-            <button
-              key={style}
-              type="button"
-              onClick={() => handleStyleClick(style)}
-              className={`px-3 py-2 text-sm font-semibold rounded-md transition-all ${
-                selectedStyle === style
-                  ? 'bg-brand-primary text-white shadow-md'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+        <div className="flex items-center space-x-2">
+           <button 
+                type="button" 
+                onClick={handlePrevPage}
+                disabled={!canGoPrev}
+                className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous styles"
             >
-              {style}
-            </button>
-          ))}
+               <ChevronLeftIcon className="h-5 w-5" />
+           </button>
+           
+           <div className="flex-1 grid grid-cols-3 gap-3">
+             {displayedStyles.map((style) => (
+               <button
+                 key={style.name}
+                 type="button"
+                 onClick={() => handleStyleClick(style.name)}
+                 className={`relative w-full aspect-square rounded-lg overflow-hidden group focus:outline-none ring-offset-2 ring-offset-gray-50 focus:ring-2 focus:ring-brand-accent transition-all duration-200 ${
+                   selectedStyle === style.name ? 'ring-2 ring-brand-accent' : 'ring-0 ring-transparent'
+                 }`}
+               >
+                 <img src={style.imageUrl} alt={style.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                 <p className="absolute bottom-2 left-3 text-white font-semibold text-sm">{style.name}</p>
+                 {selectedStyle === style.name && (
+                   <div className="absolute top-2 right-2 bg-brand-accent rounded-full p-0.5 shadow-lg">
+                     <CheckIcon className="h-4 w-4 text-white" />
+                   </div>
+                 )}
+               </button>
+             ))}
+           </div>
+
+           <button 
+                type="button" 
+                onClick={handleNextPage}
+                disabled={!canGoNext}
+                className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next styles"
+            >
+               <ChevronRightIcon className="h-5 w-5" />
+           </button>
         </div>
       </div>
       <div>
@@ -54,16 +97,17 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoad
         </label>
         <textarea
           id="custom-prompt"
-          rows={3}
+          rows={2}
           value={customPrompt}
           onChange={(e) => setCustomPrompt(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-secondary focus:ring-brand-secondary sm:text-sm bg-white text-gray-900"
-          placeholder="e.g., 'add a plush velvet sofa and gold accents'"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-accent focus:ring-brand-accent sm:text-sm bg-white text-gray-900"
+          placeholder="e.g., 'a cozy reading nook with a fireplace'"
         />
       </div>
       <button
         type="submit"
         disabled={isGenerateDisabled}
+        title={!isImageUploaded ? 'Please upload an image first' : ''}
         className="w-full flex justify-center items-center gap-2 px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-secondary hover:bg-brand-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
       >
         {isLoading ? (
@@ -77,7 +121,7 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({ onGenerate, isLoad
         ) : (
           <>
             <SparklesIcon className="h-5 w-5" />
-            Generate Design
+            {generateButtonText}
           </>
         )}
       </button>

@@ -4,12 +4,10 @@ type IconProps = {
   className?: string;
 };
 
+const palazzoLogoSrc = "https://mma.prnewswire.com/media/2350650/Palazzo_Logo.jpg?p=facebook";
+
 export const PalazzoLogo: React.FC<IconProps> = ({ className }) => (
-    <svg className={className} viewBox="0 0 150 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <text x="0" y="24" fontFamily="Inter, sans-serif" fontSize="28" fontWeight="bold" fill="currentColor">
-            Palazzo
-        </text>
-    </svg>
+    <img src={palazzoLogoSrc} alt="Palazzo logo" className={className} />
 );
 
 export const InteriorDesignerIcon: React.FC<IconProps> = ({ className }) => (
@@ -118,7 +116,7 @@ export const DownloadIcon: React.FC<IconProps> = ({ className }) => (
 
 export const DimensionsIcon: React.FC<IconProps> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h1.5M6 17.122V18a2.25 2.25 0 0 0 2.25 2.25h1.5M18 6.878V6a2.25 2.25 0 0 0-2.25-2.25h-1.5M18 17.122V18a2.25 2.25 0 0 1-2.25 2.25h-1.5m-6 0h.008v.008H12V18Zm0-12h.008v.008H12V6Zm0 12h.008v.008H12V18Zm-3.375 0h.008v.008h-.008V18Zm-3.375 0h.008v.008H5.25V18Zm3.375-12h.008v.008h-.008V6Zm3.375 0h.008v.008h-.008V6Zm3.375 0h.008v.008h-.008V6Zm-3.375 12h.008v.008h-.008V18Zm3.375 0h.008v.008h-.008V18Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h1.5M6 17.122V18a2.25 2.25 0 0 0 2.25-2.25h1.5M18 6.878V6a2.25 2.25 0 0 0-2.25-2.25h-1.5M18 17.122V18a2.25 2.25 0 0 1-2.25-2.25h-1.5m-6 0h.008v.008H12V18Zm0-12h.008v.008H12V6Zm0 12h.008v.008H12V18Zm-3.375 0h.008v.008h-.008V18Zm-3.375 0h.008v.008H5.25V18Zm3.375-12h.008v.008h-.008V6Zm3.375 0h.008v.008h-.008V6Zm3.375 0h.008v.008h-.008V6Zm-3.375 12h.008v.008h-.008V18Zm3.375 0h.008v.008h-.008V18Z" />
     </svg>
 );
 
@@ -144,5 +142,29 @@ export const CloseIcon: React.FC<IconProps> = ({ className }) => (
 export const LinkIcon: React.FC<IconProps> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+    </svg>
+);
+
+export const CopyIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+);
+
+export const ChevronLeftIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+);
+
+export const ChevronRightIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+);
+
+export const CheckIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
 );
