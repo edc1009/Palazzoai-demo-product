@@ -258,7 +258,7 @@ export const generateContentDesign = async (
     **Desired Style:** ${style}.
     **Additional User Instructions:** ${customPrompt || 'None'}.
     Generate a new, visually appealing image that aligns with the requested style.
-    Preserve the core subject of the original image, but feel free to add stylistic elements, text overlays, or relevant graphics that enhance the theme.`;
+    Preserve the core subject of the original image, but feel free to add stylistic elements that enhance the theme.`;
 
     const imageResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',

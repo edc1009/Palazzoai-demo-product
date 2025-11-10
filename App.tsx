@@ -11,6 +11,7 @@ import { generateStagedImage, generateFullFurnitureList, getShoppingInfoForItem,
 import type { FurnitureItem, Message, AppState } from './types';
 import { Spinner, DownloadIcon, CopyIcon } from './components/Icons';
 import { SocialPostPanel } from './components/SocialPostPanel';
+import { Feedback } from './components/Feedback';
 
 const App: React.FC = () => {
   const [designMode, setDesignMode] = useState<'interior' | 'content'>('interior');
@@ -24,6 +25,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const [animatedTitle, setAnimatedTitle] = useState('Interior Staging');
   const [titleAnimationClass, setTitleAnimationClass] = useState('');
@@ -59,6 +61,7 @@ const App: React.FC = () => {
     setLoadingMessage('');
     setSelectedItem(null);
     setSocialPostContent(null);
+    setFeedbackSubmitted(false);
   };
 
   const handleGenerate = async (style: string, prompt: string) => {
@@ -69,6 +72,7 @@ const App: React.FC = () => {
     setFurnitureItems([]);
     setError(null);
     setMessages([]);
+    setFeedbackSubmitted(false);
 
     try {
       const base64Data = uploadedImage.dataUrl.split(',')[1];
@@ -126,6 +130,7 @@ const App: React.FC = () => {
     setGeneratedImage(null);
     setSocialPostContent(null);
     setLoadingMessage('Generating your content...');
+    setFeedbackSubmitted(false);
 
     try {
       const base64Data = uploadedImage.dataUrl.split(',')[1];
@@ -168,6 +173,7 @@ const App: React.FC = () => {
     const newUserMessage: Message = { id: Date.now().toString(), text, sender: 'user' };
     setMessages(prev => [...prev, newUserMessage]);
     setAppState('generating');
+    setFeedbackSubmitted(false);
 
     try {
       const base64Data = generatedImage.split(',')[1];
@@ -253,6 +259,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleFeedback = (feedbackData: any) => {
+    console.log('--- FEEDBACK RECEIVED ---');
+    console.log(JSON.stringify(feedbackData, null, 2));
+    console.log('--- END FEEDBACK ---');
+    // In a real app, you'd send this to a logging service or a database.
+    setFeedbackSubmitted(true);
+  };
+
   if (appState === 'results_ready' || (appState === 'generating' && generatedImage)) {
     const isLoading = appState === 'generating';
     return (
@@ -285,12 +299,16 @@ const App: React.FC = () => {
                       <DownloadIcon className="h-5 w-5" />
                       Save
                     </button>
+
+                    {!isLoading && !feedbackSubmitted && (
+                      <Feedback onFeedback={handleFeedback} />
+                    )}
                   </div>
                 )}
               </div>
               
-              {designMode === 'content' && socialPostContent && !isLoading && (
-                  <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 lg:p-6">
+              {designMode === 'content' && socialPostContent && (
+                  <div className="flex-shrink-0 bg-white p-4 lg:p-6 border-t border-gray-200">
                       <div className="flex justify-between items-end gap-4">
                           <div className="space-y-2 max-h-[30vh] overflow-y-auto flex-grow">
                               <p className="text-sm font-semibold text-gray-500">✨ AI-Generated Post</p>
